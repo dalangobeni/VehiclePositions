@@ -2,7 +2,7 @@
 using VehiclePositions;
 
 var repository = new DataRepository();
-var nearestVehicleResults = repository.GetNearestVehiclePositions();
+var nearestVehicleResults = repository.GetNearestVehicleResultKDTree();
 
 foreach (var item in nearestVehicleResults)
     Console.WriteLine($"Vehicle Registration: {item.VehiclePosition.VehicleRegistraton}, Distance: {item.Distance:N2} Meters");

@@ -1,4 +1,6 @@
 ﻿using BAMCIS.GIS;
+using KdTree;
+using KdTree.Math;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -81,6 +83,49 @@ namespace VehiclePositions
 
 
             return nearestVehicles;
+
+
+        }
+
+        public List<NearestVehicleResult> GetNearestVehicleResultKDTree()
+        {
+            var tree = new KdTree<float, int>(2, new GeoMath());
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            List<VehiclePosition> vehiclePositions = GetVehiclePositions();
+            stopwatch.Stop();
+            long timeToLoadFile = stopwatch.ElapsedMilliseconds;
+            stopwatch.Restart();
+            for (int i = 0; i < vehiclePositions.Count; i++)
+            {
+                VehiclePosition? vehiclePosition = vehiclePositions[i];
+                tree.Add(new[] { vehiclePosition.Latitude, vehiclePosition.Longitude }, i);
+            }
+            stopwatch.Stop();
+            long timeToBuildKDTree = stopwatch.ElapsedMilliseconds;
+            stopwatch.Restart();
+
+            var nearestVehicles = new List<NearestVehicleResult>();
+            var coordinates = GetCoordinates();
+            foreach (var coordinate in coordinates)
+            {
+                var node = tree.GetNearestNeighbours(new[] { (float)coordinate.Latitude.DecimalDegrees, (float)coordinate.Longitude.DecimalDegrees }, 1).First();
+                nearestVehicles.Add(new NearestVehicleResult
+                {
+                    Distance = coordinate.DistanceTo(vehiclePositions[node.Value].Latitude, vehiclePositions[node.Value].Longitude, DistanceType.METERS),
+                    VehiclePosition = vehiclePositions[node.Value]
+                });
+            }
+            stopwatch.Stop();
+            long closestPositionTime = stopwatch.ElapsedMilliseconds;
+
+            Console.WriteLine($"Data file read execution time : {timeToLoadFile} ms");
+            Console.WriteLine($"Time to build KDTree O(n log2 n)  :{timeToBuildKDTree} ms");
+            Console.WriteLine($"Closest position calculation execution time : {closestPositionTime} ms");
+            Console.WriteLine($"Total execution time : {closestPositionTime + timeToLoadFile + timeToBuildKDTree} ms");
+
+
+            return nearestVehicles;
+
 
 
         }
