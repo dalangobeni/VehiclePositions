@@ -89,23 +89,25 @@ namespace VehiclePositions
 
         public List<NearestVehicleResult> GetNearestVehicleResultKDTree()
         {
-            var tree = new KdTree<float, int>(2, new GeoMath());
+            var tree = new KdTree<float, int>(2, new FloatMath());
             Stopwatch stopwatch = Stopwatch.StartNew();
             List<VehiclePosition> vehiclePositions = GetVehiclePositions();
             stopwatch.Stop();
             long timeToLoadFile = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
-            for (int i = 0; i < vehiclePositions.Count; i++)
+            Parallel.For(0, vehiclePositions.Count, (i) =>
             {
                 VehiclePosition? vehiclePosition = vehiclePositions[i];
                 tree.Add(new[] { vehiclePosition.Latitude, vehiclePosition.Longitude }, i);
-            }
+            });
+          
             stopwatch.Stop();
             long timeToBuildKDTree = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
 
             var nearestVehicles = new List<NearestVehicleResult>();
             var coordinates = GetCoordinates();
+
             foreach (var coordinate in coordinates)
             {
                 var node = tree.GetNearestNeighbours(new[] { (float)coordinate.Latitude.DecimalDegrees, (float)coordinate.Longitude.DecimalDegrees }, 1).First();
